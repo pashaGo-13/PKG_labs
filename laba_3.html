@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ОБРАБОТКА ИЗОБРАЖЕНИЙ</title>
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --surface: #2a2a2a;
+      --border: #3a3a3a;
+      --text: #e5e5e5;
+      --muted: #9a9a9a;
+      --accent: #353a48;
+      --accent2: #2e4a2c;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: system-ui, Arial;
+      color: var(--text);
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    header h1 {
+      font-size: 24px;
+      color: var(--text);
+      text-align: center;
+      margin: 0;
+      width: 100%;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 16px;
+      align-items: start;
+      min-height: 80vh;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      position: sticky;
+      top: 20px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+    }
+
+    .image-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      position: sticky;
+      top: 20px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+    }
+
+    .card::-webkit-scrollbar,
+    .image-card::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .card::-webkit-scrollbar-track,
+    .image-card::-webkit-scrollbar-track {
+      background: var(--surface);
+      border-radius: 3px;
+    }
+
+    .card::-webkit-scrollbar-thumb,
+    .image-card::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 3px;
+    }
+
+    .card::-webkit-scrollbar-thumb:hover,
+    .image-card::-webkit-scrollbar-thumb:hover {
+      background: var(--accent2);
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    input[type=range],
+    input[type=file],
+    select {
+      width: 100%;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px;
+      font-size: 13px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      background: var(--accent);
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      font-size: 13px;
+      flex: 1;
+    }
+
+    button.ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    button.secondary {
+      background: var(--accent2);
+    }
+
+    canvas {
+      max-width: 100%;
+      background: #111;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .method-group {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .method-group:last-child {
+      border-bottom: none;
+    }
+
+    .method-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .param-group {
+      margin-bottom: 8px;
+    }
+
+    .images-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .image-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .image-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .status {
+      margin-top: 8px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .card, .image-card {
+        position: static;
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>ОБРАБОТКА ИЗОБРАЖЕНИЙ</h1>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="controls">
+          <label>Загрузить изображение</label>
+          <input id="file" type="file" accept="image/*">
+
+          <div class="method-group">
+            <div class="method-title">Поэлементные операции</div>
+            
+            <div class="param-group">
+              <label>Яркость: <span id="brightnessVal">0</span></label>
+              <input id="brightnessRange" type="range" min="-100" max="100" value="0">
+            </div>
+
+            <div class="param-group">
+              <label>Контраст: <span id="contrastVal">1.0</span></label>
+              <input id="contrastRange" type="range" min="0" max="200" value="100">
+            </div>
+
+            <div class="param-group">
+              <label>Гамма: <span id="gammaVal">1.0</span></label>
+              <input id="gammaRange" type="range" min="1" max="300" value="100">
+            </div>
+
+            <div class="row">
+              <button id="applyPointOps">Применить</button>
+              <button id="resetPointOps" class="ghost">Сброс</button>
+            </div>
+          </div>
+
+          <div class="method-group">
+            <div class="method-title">Линейное контрастирование</div>
+            
+            <div class="row">
+              <button id="applyLinearContrast">Применить</button>
+            </div>
+          </div>
+
+          <div class="method-group">
+            <div class="method-title">Фиксированный порог</div>
+            
+            <div class="param-group">
+              <label>Порог: <span id="globalThresholdVal">128</span></label>
+              <input id="globalThreshold" type="range" min="0" max="255" value="128">
+            </div>
+
+            <div class="row">
+              <button id="applyGlobalThreshold">Применить</button>
+            </div>
+          </div>
+
+          <div class="method-group">
+            <div class="method-title">Метод Оцу</div>
+            
+            <div class="row">
+              <button id="applyOtsuThreshold">Применить</button>
+            </div>
+          </div>
+
+          <div class="method-group">
+            <div class="method-title">Адаптивная пороговая обработка</div>
+            
+            <div class="param-group">
+              <label>Размер окна: <span id="windowSizeVal">15</span></label>
+              <input id="windowSize" type="range" min="3" max="51" step="2" value="15">
+            </div>
+
+            <div class="param-group">
+              <label>Коэффициент α: <span id="alphaVal">0.67</span></label>
+              <input id="alphaRange" type="range" min="30" max="80" value="67">
+            </div>
+
+            <div class="row">
+              <button id="applyAdaptiveThreshold">Применить</button>
+            </div>
+          </div>
+
+            <div class="method-group">
+            <div class="method-title">Утилиты</div>
+            <div class="row">
+              <button id="resetAll" class="ghost">Сброс</button>
+              <button id="download" class="secondary">Скачать результат</button>
+        </div>
+      </section>
+
+      <section class="images-container">
+        <div class="image-card">
+          <div class="image-comparison">
+            <div class="image-wrapper">
+              <div class="small">Исходное изображение</div>
+              <canvas id="origCanvas" width="512" height="512"></canvas>
+            </div>
+            <div class="image-wrapper">
+              <div class="small">Результат обработки</div>
+              <canvas id="outCanvas" width="512" height="512"></canvas>
+            </div>
+          </div>
+          
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+            <button id="resetView" class="ghost">Сброс</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file');
+    const origCanvas = document.getElementById('origCanvas');
+    const outCanvas = document.getElementById('outCanvas');
+    const origCtx = origCanvas.getContext('2d');
+    const outCtx = outCanvas.getContext('2d');
+    const imgSizeSpan = document.getElementById('imgSize');
+    const statusSpan = document.getElementById('status');
+
+    let img = new Image();
+    let originalImageData = null;
+    let currentImageData = null;
+
+    const brightnessRange = document.getElementById('brightnessRange');
+    const contrastRange = document.getElementById('contrastRange');
+    const gammaRange = document.getElementById('gammaRange');
+    const brightnessVal = document.getElementById('brightnessVal');
+    const contrastVal = document.getElementById('contrastVal');
+    const gammaVal = document.getElementById('gammaVal');
+    const applyPointOpsBtn = document.getElementById('applyPointOps');
+    const resetPointOpsBtn = document.getElementById('resetPointOps');
+
+    const applyLinearContrastBtn = document.getElementById('applyLinearContrast');
+
+    const globalThreshold = document.getElementById('globalThreshold');
+    const globalThresholdVal = document.getElementById('globalThresholdVal');
+    const applyGlobalThresholdBtn = document.getElementById('applyGlobalThreshold');
+
+    const applyOtsuThresholdBtn = document.getElementById('applyOtsuThreshold');
+
+    const windowSize = document.getElementById('windowSize');
+    const alphaRange = document.getElementById('alphaRange');
+    const windowSizeVal = document.getElementById('windowSizeVal');
+    const alphaVal = document.getElementById('alphaVal');
+    const applyAdaptiveThresholdBtn = document.getElementById('applyAdaptiveThreshold');
+
+    const resetAllBtn = document.getElementById('resetAll');
+    const downloadBtn = document.getElementById('download');
+    const resetViewBtn = document.getElementById('resetView');
+
+    function initEventListeners() {
+      brightnessRange.addEventListener('input', () => brightnessVal.textContent = brightnessRange.value);
+      contrastRange.addEventListener('input', () => contrastVal.textContent = (contrastRange.value / 100).toFixed(1));
+      gammaRange.addEventListener('input', () => gammaVal.textContent = (gammaRange.value / 100).toFixed(1));
+
+      globalThreshold.addEventListener('input', () => globalThresholdVal.textContent = globalThreshold.value);
+
+      windowSize.addEventListener('input', () => windowSizeVal.textContent = windowSize.value);
+      alphaRange.addEventListener('input', () => alphaVal.textContent = (alphaRange.value / 100).toFixed(2));
+
+      applyPointOpsBtn.addEventListener('click', applyPointOperations);
+      resetPointOpsBtn.addEventListener('click', resetPointOperations);
+      applyLinearContrastBtn.addEventListener('click', applyLinearContrast);
+      applyGlobalThresholdBtn.addEventListener('click', applyGlobalThreshold);
+      applyOtsuThresholdBtn.addEventListener('click', applyOtsuThreshold);
+      applyAdaptiveThresholdBtn.addEventListener('click', applyAdaptiveThreshold);
+
+      resetAllBtn.addEventListener('click', resetAll);
+      downloadBtn.addEventListener('click', downloadResult);
+      resetViewBtn.addEventListener('click', resetView);
+      fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const url = URL.createObjectURL(file);
+      loadImage(url);
+      statusSpan.textContent = 'Изображение загружено';
+    }
+
+    function loadImage(src) {
+      img = new Image();
+      img.onload = () => {
+        fitCanvasToImage(img);
+        origCtx.clearRect(0, 0, origCanvas.width, origCanvas.height);
+        origCtx.drawImage(img, 0, 0, origCanvas.width, origCanvas.height);
+        originalImageData = origCtx.getImageData(0, 0, origCanvas.width, origCanvas.height);
+        currentImageData = originalImageData;
+        imgSizeSpan.textContent = `${img.width} × ${img.height}`;
+        clearOutput();
+        statusSpan.textContent = 'Готов к обработке';
+      };
+      img.onerror = () => {
+        statusSpan.textContent = 'Ошибка загрузки изображения';
+      };
+      img.src = src;
+    }
+
+    function fitCanvasToImage(image) {
+      const maxDim = 512;
+      let w = image.width, h = image.height;
+      const scale = Math.min(maxDim / w, maxDim / h);
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+
+      origCanvas.width = w;
+      origCanvas.height = h;
+      outCanvas.width = w;
+      outCanvas.height = h;
+    }
+
+    function clearOutput() {
+      outCtx.clearRect(0, 0, outCanvas.width, outCanvas.height);
+    }
+
+    function updateOutput(imageData) {
+      outCtx.putImageData(imageData, 0, 0);
+      currentImageData = imageData;
+    }
+
+
+    function applyPointOperations() {
+      if (!currentImageData) return;
+      
+      const brightness = parseInt(brightnessRange.value);
+      const contrast = parseFloat(contrastRange.value) / 100;
+      const gamma = parseFloat(gammaRange.value) / 100;
+      
+      const result = applyPointOps(currentImageData, brightness, contrast, gamma);
+      updateOutput(result);
+      statusSpan.textContent = 'Поэлементные операции применены';
+    }
+
+    //поэлементные операции
+    function applyPointOps(imgData, brightness, contrast, gamma) {
+      const data = new Uint8ClampedArray(imgData.data);
+      const lut = new Array(256);
+      
+      for (let i = 0; i < 256; i++) {
+        let value = i;
+        
+        value = (value - 128) * contrast + 128;
+        
+        value = value + brightness;
+        
+        value = Math.pow(value / 255, 1 / gamma) * 255;
+        
+        lut[i] = Math.max(0, Math.min(255, value));
+      }
+      
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = lut[data[i]];     // R
+        data[i + 1] = lut[data[i + 1]]; // G
+        data[i + 2] = lut[data[i + 2]]; // B
+      }
+      
+      return new ImageData(data, imgData.width, imgData.height);
+    }
+
+    function resetPointOperations() {
+      brightnessRange.value = 0;
+      contrastRange.value = 100;
+      gammaRange.value = 100;
+      brightnessVal.textContent = '0';
+      contrastVal.textContent = '1.0';
+      gammaVal.textContent = '1.0';
+      statusSpan.textContent = 'Параметры поэлементных операций сброшены';
+    }
+
+    //линейное контрастирование
+    function applyLinearContrast() {
+      if (!currentImageData) return;
+      
+      const grayData = convertToGrayscaleData(currentImageData);
+      const hist = calculateHistogram(grayData);
+      const total = grayData.width * grayData.height;
+      
+      let minIn = 0, maxIn = 255;
+      let count = 0;
+      
+      for (let i = 0; i < 256; i++) {
+        count += hist[i];
+        if (count > total * 0.02) {
+          minIn = i;
+          break;
+        }
+      }
+      
+      count = 0;
+      for (let i = 255; i >= 0; i--) {
+        count += hist[i];
+        if (count > total * 0.02) {
+          maxIn = i;
+          break;
+        }
+      }
+      
+      minIn = Math.max(0, minIn - 5);
+      maxIn = Math.min(255, maxIn + 5);
+      
+      if (maxIn - minIn < 30) {
+        minIn = Math.max(0, minIn - 15);
+        maxIn = Math.min(255, maxIn + 15);
+      }
+      
+      if (minIn <= 10 && maxIn >= 245) {
+        statusSpan.textContent = 'Изображение уже использует почти полный диапазон';
+        return;
+      }
+      
+      const result = applyLinearContrastToImage(currentImageData, minIn, maxIn, 0, 255);
+      updateOutput(result);
+      statusSpan.textContent = `Линейное контрастирование применено (${minIn}-${maxIn} → 0-255)`;
+    }
+
+    function applyLinearContrastToImage(imgData, minIn, maxIn, minOut, maxOut) {
+      const data = new Uint8ClampedArray(imgData.data);
+      const rangeIn = maxIn - minIn;
+      const rangeOut = maxOut - minOut;
+      
+      if (rangeIn <= 0) return imgData;
+      
+      const lut = new Array(256);
+      for (let i = 0; i < 256; i++) {
+        let value;
+        if (i <= minIn) {
+          value = minOut;
+        } else if (i >= maxIn) {
+          value = maxOut;
+        } else {
+          value = ((i - minIn) / rangeIn) * rangeOut + minOut;
+        }
+        lut[i] = Math.max(0, Math.min(255, Math.round(value)));
+      }
+      
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = lut[data[i]];       // R
+        data[i + 1] = lut[data[i + 1]]; // G
+        data[i + 2] = lut[data[i + 2]]; // B
+      }
+      
+      return new ImageData(data, imgData.width, imgData.height);
+    }
+
+    //глобальная с фиксированным порогом
+    function applyGlobalThreshold() {
+      if (!currentImageData) return;
+      
+      const threshold = parseInt(globalThreshold.value);
+      let grayData = convertToGrayscaleData(currentImageData);
+      
+      const result = applyThreshold(grayData, threshold);
+      updateOutput(result);
+      statusSpan.textContent = `Фиксированный порог применен (${threshold})`;
+    }
+
+    //метод оцу
+    function applyOtsuThreshold() {
+      if (!currentImageData) return;
+      
+      let grayData = convertToGrayscaleData(currentImageData);
+      const threshold = calculateOtsuThreshold(grayData);
+      
+      const result = applyThreshold(grayData, threshold);
+      updateOutput(result);
+      statusSpan.textContent = `Метод Оцу применен порог: ${threshold}`;
+    }
+
+    function calculateOtsuThreshold(imgData) {
+      const hist = calculateHistogram(imgData);
+      const total = imgData.width * imgData.height;
+      
+      let sum = 0;
+      for (let i = 0; i < 256; i++) {
+        sum += i * hist[i];
+      }
+      
+      let sumB = 0;
+      let wB = 0;
+      let wF = 0;
+      let varMax = 0;
+      let threshold = 0;
+      
+      for (let t = 0; t < 256; t++) {
+        wB += hist[t];
+        if (wB === 0) continue;
+        
+        wF = total - wB;
+        if (wF === 0) break;
+        
+        sumB += t * hist[t];
+        
+        let mB = sumB / wB;
+        let mF = (sum - sumB) / wF;
+        
+        let varBetween = wB * wF * (mB - mF) * (mB - mF);
+        
+        if (varBetween > varMax) {
+          varMax = varBetween;
+          threshold = t;
+        }
+      }
+      
+      return threshold;
+    }
+
+    function applyThreshold(imgData, threshold) {
+      const data = new Uint8ClampedArray(imgData.data);
+      
+      for (let i = 0; i < data.length; i += 4) {
+        const value = data[i] >= threshold ? 255 : 0;
+        data[i] = data[i + 1] = data[i + 2] = value;
+      }
+      
+      return new ImageData(data, imgData.width, imgData.height);
+    }
+
+    //адаптивная
+    function applyAdaptiveThreshold() {
+      if (!currentImageData) return;
+      
+      const windowSizeValue = parseInt(windowSize.value);
+      const alphaValue = parseFloat(alphaRange.value) / 100;
+      
+      let grayData = convertToGrayscaleData(currentImageData);
+      const result = applyAdvancedAdaptiveThreshold(grayData, windowSizeValue, alphaValue);
+      updateOutput(result);
+      statusSpan.textContent = 'Адаптивный порог применен';
+    }
+
+    function applyAdvancedAdaptiveThreshold(imgData, windowSize, alpha) {
+      const width = imgData.width;
+      const height = imgData.height;
+      const srcData = imgData.data;
+      const dstData = new Uint8ClampedArray(srcData.length);
+      
+      const radius = Math.floor(windowSize / 2);
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let values = [];
+          let sum = 0;
+          
+          for (let j = -radius; j <= radius; j++) {
+            for (let i = -radius; i <= radius; i++) {
+              const ny = y + j;
+              const nx = x + i;
+              
+              if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                const idx = (ny * width + nx) * 4;
+                const value = srcData[idx];
+                values.push(value);
+                sum += value;
+              }
+            }
+          }
+          
+          if (values.length === 0) continue;
+
+          const localMean = sum / values.length;
+          const localMax = Math.max(...values);
+          const localMin = Math.min(...values);
+          
+          const deltaMax = Math.abs(localMax - localMean);
+          const deltaMin = Math.abs(localMin - localMean);
+          
+          let threshold;
+          
+          if (deltaMax > deltaMin) {
+            threshold = alpha * ((2/3) * localMin + (1/3) * localMean);
+          } else if (deltaMax < deltaMin) {
+            threshold = alpha * ((1/3) * localMin + (2/3) * localMean);
+          } else {
+            threshold = alpha * localMean;
+          }
+          
+          const idx = (y * width + x) * 4;
+          const currentPixel = srcData[idx];
+          const value = Math.abs(currentPixel - localMean) > threshold ? 255 : 0;
+          
+          dstData[idx] = dstData[idx + 1] = dstData[idx + 2] = value;
+          dstData[idx + 3] = 255;
+        }
+      }
+      
+      return new ImageData(dstData, width, height);
+    }
+
+    function convertToGrayscaleData(imgData) {
+      const data = new Uint8ClampedArray(imgData.data);
+      
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        data[i] = data[i + 1] = data[i + 2] = gray;
+      }
+      
+      return new ImageData(data, imgData.width, imgData.height);
+    }
+
+    function calculateHistogram(imgData) {
+      const hist = new Array(256).fill(0);
+      const data = imgData.data;
+      
+      for (let i = 0; i < data.length; i += 4) {
+        hist[data[i]]++;
+      }
+      
+      return hist;
+    }
+
+    function resetAll() {
+      if (originalImageData) {
+        origCtx.putImageData(originalImageData, 0, 0);
+        currentImageData = originalImageData;
+        clearOutput();
+        resetPointOperations();
+        statusSpan.textContent = 'Все параметры сброшены';
+      }
+    }
+
+    function resetView() {
+      if (img && img.src) {
+        loadImage(img.src);
+      }
+    }
+
+    function downloadResult() {
+      const link = document.createElement('a');
+      link.download = 'processed_image.png';
+      link.href = outCanvas.toDataURL();
+      link.click();
+      statusSpan.textContent = 'Изображение скачано';
+    }
+
+    initEventListeners();
+  </script>
+</body>
+
+</html>
