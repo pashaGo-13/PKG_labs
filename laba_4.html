@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -70,7 +71,9 @@
             font-weight: 500;
         }
 
-        select, input, button {
+        select,
+        input,
+        button {
             background-color: #2d2d2d;
             color: #e0e0e0;
             border: 1px solid #444;
@@ -160,6 +163,7 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <h1>Растеризация</h1>
@@ -176,27 +180,27 @@
                     <option value="bresenham-circle">Алгоритм Брезенхема (окружность)</option>
                 </select>
             </div>
-            
+
             <div class="control-group">
                 <label for="x1">X1:</label>
                 <input type="number" id="x1" value="2">
             </div>
-            
+
             <div class="control-group">
                 <label for="y1">Y1:</label>
                 <input type="number" id="y1" value="3">
             </div>
-            
+
             <div class="control-group">
                 <label for="x2">X2 (или радиус для окружности):</label>
                 <input type="number" id="x2" value="8">
             </div>
-            
+
             <div class="control-group">
                 <label for="y2">Y2 (не используется для окружности):</label>
                 <input type="number" id="y2" value="10">
             </div>
-            
+
             <button id="drawButton">Построить</button>
             <button id="resetViewButton">Сбросить вид</button>
         </div>
@@ -258,16 +262,16 @@
 
             visualizationCanvas.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
-                
+
                 const deltaX = e.clientX - lastMouseX;
                 const deltaY = e.clientY - lastMouseY;
 
                 offsetX += Math.round(deltaX / GRID_SIZE) * GRID_SIZE;
                 offsetY += Math.round(deltaY / GRID_SIZE) * GRID_SIZE;
-                
+
                 lastMouseX = e.clientX;
                 lastMouseY = e.clientY;
-                
+
                 redrawAll();
             });
 
@@ -323,12 +327,12 @@
 
             const centerX = width / 2 + offsetX;
             const centerY = height / 2 + offsetY;
-            
+
             visCtx.beginPath();
             visCtx.moveTo(0, centerY);
             visCtx.lineTo(width, centerY);
             visCtx.stroke();
-            
+
             visCtx.beginPath();
             visCtx.moveTo(centerX, 0);
             visCtx.lineTo(centerX, height);
@@ -340,17 +344,17 @@
 
             const startX = Math.floor((-centerX) / GRID_SIZE);
             const endX = Math.floor((width - centerX) / GRID_SIZE);
-            
+
             for (let i = startX; i <= endX; i++) {
                 const x = centerX + i * GRID_SIZE;
                 if (x >= 10 && x <= width - 10) {
                     visCtx.fillText(i.toString(), x, centerY + 15);
                 }
             }
-            
+
             const startY = Math.floor((-centerY) / GRID_SIZE);
             const endY = Math.floor((height - centerY) / GRID_SIZE);
-            
+
             for (let i = startY; i <= endY; i++) {
                 const y = centerY + i * GRID_SIZE;
                 if (y >= 10 && y <= height - 10) {
@@ -360,20 +364,20 @@
                     visCtx.textAlign = 'center';
                 }
             }
-            
+
             visCtx.fillText("0", centerX - 10, centerY + 15);
         }
 
         function toGridPosition(x, y) {
             const centerX = visualizationCanvas.width / 2 + offsetX;
             const centerY = visualizationCanvas.height / 2 + offsetY;
-            
+
             const pixelX = centerX + x * GRID_SIZE;
             const pixelY = centerY - y * GRID_SIZE;
-            
+
             const gridX = Math.round(pixelX / GRID_SIZE);
             const gridY = Math.round(pixelY / GRID_SIZE);
-            
+
             return {
                 gridX: gridX,
                 gridY: gridY,
@@ -385,18 +389,18 @@
         function drawPixel(gridX, gridY, color = '#ffffff') {
             visCtx.fillStyle = color;
             visCtx.fillRect(
-                gridX * GRID_SIZE, 
-                gridY * GRID_SIZE, 
-                GRID_SIZE, 
+                gridX * GRID_SIZE,
+                gridY * GRID_SIZE,
+                GRID_SIZE,
                 GRID_SIZE
             );
-            
+
             visCtx.strokeStyle = '#222';
             visCtx.lineWidth = 1;
             visCtx.strokeRect(
-                gridX * GRID_SIZE, 
-                gridY * GRID_SIZE, 
-                GRID_SIZE, 
+                gridX * GRID_SIZE,
+                gridY * GRID_SIZE,
+                GRID_SIZE,
                 GRID_SIZE
             );
         }
@@ -406,16 +410,16 @@
                 const point = animationPoints[currentStep];
                 const pos = toGridPosition(point.x, point.y);
                 drawPixel(pos.gridX, pos.gridY, '#ff4444');
-                
+
                 currentStep++;
                 animationId = requestAnimationFrame(animateStep);
             } else {
                 const endTime = performance.now();
                 const executionTime = endTime - startTime;
-                
+
                 timeValue.textContent = executionTime.toFixed(2);
                 timeInfo.style.display = 'block';
-                
+
                 isAnimating = false;
                 redrawFinalResult();
             }
@@ -430,42 +434,57 @@
         }
 
         function stepAlgorithm(x1, y1, x2, y2, animate = false) {
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            const steps = Math.max(Math.abs(dx), Math.abs(dy));
-            
-            if (steps === 0) {
-                const pos = toGridPosition(x1, y1);
-                drawPixel(pos.gridX, pos.gridY);
-                return;
-            }
-            
-            const xIncrement = dx / steps;
-            const yIncrement = dy / steps;
-            
-            let x = x1;
-            let y = y1;
-            
-            if (animate) {
-                animationPoints = [];
-                for (let i = 0; i <= steps; i++) {
-                    animationPoints.push({
-                        x: Math.round(x),
-                        y: Math.round(y)
-                    });
-                    x += xIncrement;
-                    y += yIncrement;
+            const dx = Math.abs(x2 - x1);
+            const dy = Math.abs(y2 - y1);
+
+            if (dx >= dy) {
+                const m = (y2 - y1) / (x2 - x1);
+                const startX = Math.min(x1, x2);
+                const endX = Math.max(x1, x2);
+
+                if (animate) {
+                    animationPoints = [];
+                    for (let x = startX; x <= endX; x++) {
+                        const y = y1 + m * (x - x1);
+                        animationPoints.push({
+                            x: Math.round(x),
+                            y: Math.round(y)
+                        });
+                    }
+                    totalSteps = animationPoints.length;
+                    currentStep = 0;
+                    return;
                 }
-                totalSteps = animationPoints.length;
-                currentStep = 0;
-                return;
-            }
-            
-            for (let i = 0; i <= steps; i++) {
-                const pos = toGridPosition(Math.round(x), Math.round(y));
-                drawPixel(pos.gridX, pos.gridY);
-                x += xIncrement;
-                y += yIncrement;
+
+                for (let x = startX; x <= endX; x++) {
+                    const y = y1 + m * (x - x1);
+                    const pos = toGridPosition(Math.round(x), Math.round(y));
+                    drawPixel(pos.gridX, pos.gridY);
+                }
+            } else {
+                const m_inv = (x2 - x1) / (y2 - y1);
+                const startY = Math.min(y1, y2);
+                const endY = Math.max(y1, y2);
+
+                if (animate) {
+                    animationPoints = [];
+                    for (let y = startY; y <= endY; y++) {
+                        const x = x1 + m_inv * (y - y1);
+                        animationPoints.push({
+                            x: Math.round(x),
+                            y: Math.round(y)
+                        });
+                    }
+                    totalSteps = animationPoints.length;
+                    currentStep = 0;
+                    return;
+                }
+
+                for (let y = startY; y <= endY; y++) {
+                    const x = x1 + m_inv * (y - y1);
+                    const pos = toGridPosition(Math.round(x), Math.round(y));
+                    drawPixel(pos.gridX, pos.gridY);
+                }
             }
         }
 
@@ -473,19 +492,19 @@
             const dx = x2 - x1;
             const dy = y2 - y1;
             const steps = Math.max(Math.abs(dx), Math.abs(dy));
-            
+
             if (steps === 0) {
                 const pos = toGridPosition(x1, y1);
                 drawPixel(pos.gridX, pos.gridY);
                 return;
             }
-            
+
             const xIncrement = dx / steps;
             const yIncrement = dy / steps;
-            
+
             let x = x1;
             let y = y1;
-            
+
             if (animate) {
                 animationPoints = [];
                 for (let i = 0; i <= steps; i++) {
@@ -500,7 +519,7 @@
                 currentStep = 0;
                 return;
             }
-            
+
             for (let i = 0; i <= steps; i++) {
                 const pos = toGridPosition(Math.round(x), Math.round(y));
                 drawPixel(pos.gridX, pos.gridY);
@@ -514,20 +533,20 @@
             let y = Math.round(y1);
             const x2_rounded = Math.round(x2);
             const y2_rounded = Math.round(y2);
-            
+
             const dx = Math.abs(x2_rounded - x);
             const dy = Math.abs(y2_rounded - y);
             const sx = (x < x2_rounded) ? 1 : -1;
             const sy = (y < y2_rounded) ? 1 : -1;
             let err = dx - dy;
-            
+
             if (animate) {
                 animationPoints = [];
-                animationPoints.push({x, y});
-                
+                animationPoints.push({ x, y });
+
                 while (true) {
                     if (x === x2_rounded && y === y2_rounded) break;
-                    
+
                     const e2 = 2 * err;
                     if (e2 > -dy) {
                         err -= dy;
@@ -537,20 +556,20 @@
                         err += dx;
                         y += sy;
                     }
-                    animationPoints.push({x, y});
+                    animationPoints.push({ x, y });
                 }
-                
+
                 totalSteps = animationPoints.length;
                 currentStep = 0;
                 return;
             }
-            
+
             while (true) {
                 const pos = toGridPosition(x, y);
                 drawPixel(pos.gridX, pos.gridY);
-                
+
                 if (x === x2_rounded && y === y2_rounded) break;
-                
+
                 const e2 = 2 * err;
                 if (e2 > -dy) {
                     err -= dy;
@@ -567,19 +586,19 @@
             let x = 0;
             let y = Math.round(r);
             let d = 3 - 2 * Math.round(r);
-            
+
             const drawCirclePoints = (xc, yc, x, y, points = null) => {
                 const pointsToDraw = [
-                    {x: xc + x, y: yc + y},
-                    {x: xc - x, y: yc + y},
-                    {x: xc + x, y: yc - y},
-                    {x: xc - x, y: yc - y},
-                    {x: xc + y, y: yc + x},
-                    {x: xc - y, y: yc + x},
-                    {x: xc + y, y: yc - x},
-                    {x: xc - y, y: yc - x}
+                    { x: xc + x, y: yc + y },
+                    { x: xc - x, y: yc + y },
+                    { x: xc + x, y: yc - y },
+                    { x: xc - x, y: yc - y },
+                    { x: xc + y, y: yc + x },
+                    { x: xc - y, y: yc + x },
+                    { x: xc + y, y: yc - x },
+                    { x: xc - y, y: yc - x }
                 ];
-                
+
                 if (points) {
                     points.push(...pointsToDraw);
                 } else {
@@ -589,11 +608,11 @@
                     });
                 }
             };
-            
+
             if (animate) {
                 animationPoints = [];
                 drawCirclePoints(xc, yc, x, y, animationPoints);
-                
+
                 while (y >= x) {
                     x++;
                     if (d > 0) {
@@ -604,14 +623,14 @@
                     }
                     drawCirclePoints(xc, yc, x, y, animationPoints);
                 }
-                
+
                 totalSteps = animationPoints.length;
                 currentStep = 0;
                 return;
             }
-            
+
             drawCirclePoints(xc, yc, x, y);
-            
+
             while (y >= x) {
                 x++;
                 if (d > 0) {
@@ -629,7 +648,7 @@
                 isAnimating = true;
                 startTime = performance.now();
                 timeInfo.style.display = 'none';
-                
+
                 if (algorithm === 'step') {
                     stepAlgorithm(x1, y1, x2, y2, animate);
                 } else if (algorithm === 'dda') {
@@ -639,7 +658,7 @@
                 } else if (algorithm === 'bresenham-circle') {
                     bresenhamCircle(x1, y1, x2, animate);
                 }
-                
+
                 animateStep();
             } else {
                 if (algorithm === 'step') {
@@ -661,7 +680,7 @@
             const y1 = parseInt(y1Input.value);
             const x2 = parseInt(x2Input.value);
             const y2 = parseInt(y2Input.value);
-            
+
             currentCoords = { algorithm, x1, y1, x2, y2 };
             drawCoordinateSystem();
             executeAlgorithm(algorithm, x1, y1, x2, y2, true);
@@ -686,4 +705,5 @@
         window.addEventListener('load', init);
     </script>
 </body>
+
 </html>
