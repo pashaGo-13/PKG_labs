@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Растеризация</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            color: #f0f0f0;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            height: fit-content;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        select, input, button {
+            background-color: #2d2d2d;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            padding: 10px 15px;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: #3a3a3a;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #4a4a4a;
+        }
+
+        .canvas-container {
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #f0f0f0;
+            text-align: center;
+        }
+
+        canvas {
+            display: block;
+            background-color: #0a0a0a;
+            border: 1px solid #333;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 600px;
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        .canvas-info {
+            text-align: center;
+            margin-top: 10px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .time-info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(30, 30, 30, 0.8);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            font-size: 0.9rem;
+            color: #e0e0e0;
+            z-index: 10;
+        }
+
+        .time-value {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+            color: #888;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Растеризация</h1>
+    </header>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label for="algorithm">Выберите алгоритм:</label>
+                <select id="algorithm">
+                    <option value="step">Пошаговый алгоритм</option>
+                    <option value="dda">Алгоритм ЦДА</option>
+                    <option value="bresenham">Алгоритм Брезенхема (линия)</option>
+                    <option value="bresenham-circle">Алгоритм Брезенхема (окружность)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="x1">X1:</label>
+                <input type="number" id="x1" value="2">
+            </div>
+            
+            <div class="control-group">
+                <label for="y1">Y1:</label>
+                <input type="number" id="y1" value="3">
+            </div>
+            
+            <div class="control-group">
+                <label for="x2">X2 (или радиус для окружности):</label>
+                <input type="number" id="x2" value="8">
+            </div>
+            
+            <div class="control-group">
+                <label for="y2">Y2 (не используется для окружности):</label>
+                <input type="number" id="y2" value="10">
+            </div>
+            
+            <button id="drawButton">Построить</button>
+            <button id="resetViewButton">Сбросить вид</button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="visualizationCanvas" width="600" height="600"></canvas>
+            <div class="canvas-info">
+                <p>Зажмите левую кнопку мыши для перемещения</p>
+            </div>
+            <div class="time-info" id="timeInfo" style="display: none;">
+                Время выполнения: <span class="time-value" id="timeValue">0</span> мс
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const algorithmSelect = document.getElementById('algorithm');
+        const x1Input = document.getElementById('x1');
+        const y1Input = document.getElementById('y1');
+        const x2Input = document.getElementById('x2');
+        const y2Input = document.getElementById('y2');
+        const drawButton = document.getElementById('drawButton');
+        const resetViewButton = document.getElementById('resetViewButton');
+        const visualizationCanvas = document.getElementById('visualizationCanvas');
+        const timeInfo = document.getElementById('timeInfo');
+        const timeValue = document.getElementById('timeValue');
+
+        const visCtx = visualizationCanvas.getContext('2d');
+
+        const GRID_SIZE = 20;
+
+        let offsetX = 0;
+        let offsetY = 0;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        let animationId = null;
+        let currentStep = 0;
+        let totalSteps = 0;
+        let animationPoints = [];
+        let isAnimating = false;
+        let startTime = 0;
+
+        let currentCoords = null;
+
+        function init() {
+            drawCoordinateSystem();
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            visualizationCanvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                visualizationCanvas.style.cursor = 'grabbing';
+            });
+
+            visualizationCanvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+
+                offsetX += Math.round(deltaX / GRID_SIZE) * GRID_SIZE;
+                offsetY += Math.round(deltaY / GRID_SIZE) * GRID_SIZE;
+                
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                
+                redrawAll();
+            });
+
+            visualizationCanvas.addEventListener('mouseup', () => {
+                isDragging = false;
+                visualizationCanvas.style.cursor = 'grab';
+            });
+
+            visualizationCanvas.addEventListener('mouseleave', () => {
+                isDragging = false;
+                visualizationCanvas.style.cursor = 'grab';
+            });
+
+            visualizationCanvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+            });
+        }
+
+        function redrawAll() {
+            drawCoordinateSystem();
+            if (currentCoords && !isAnimating) {
+                const { algorithm, x1, y1, x2, y2 } = currentCoords;
+                executeAlgorithm(algorithm, x1, y1, x2, y2, false);
+            }
+        }
+
+        function drawCoordinateSystem() {
+            const width = visualizationCanvas.width;
+            const height = visualizationCanvas.height;
+
+            visCtx.fillStyle = '#0a0a0a';
+            visCtx.fillRect(0, 0, width, height);
+
+            visCtx.strokeStyle = '#222';
+            visCtx.lineWidth = 1;
+
+            for (let x = offsetX % GRID_SIZE; x <= width; x += GRID_SIZE) {
+                visCtx.beginPath();
+                visCtx.moveTo(x, 0);
+                visCtx.lineTo(x, height);
+                visCtx.stroke();
+            }
+
+            for (let y = offsetY % GRID_SIZE; y <= height; y += GRID_SIZE) {
+                visCtx.beginPath();
+                visCtx.moveTo(0, y);
+                visCtx.lineTo(width, y);
+                visCtx.stroke();
+            }
+
+            visCtx.strokeStyle = '#444';
+            visCtx.lineWidth = 2;
+
+            const centerX = width / 2 + offsetX;
+            const centerY = height / 2 + offsetY;
+            
+            visCtx.beginPath();
+            visCtx.moveTo(0, centerY);
+            visCtx.lineTo(width, centerY);
+            visCtx.stroke();
+            
+            visCtx.beginPath();
+            visCtx.moveTo(centerX, 0);
+            visCtx.lineTo(centerX, height);
+            visCtx.stroke();
+
+            visCtx.fillStyle = '#888';
+            visCtx.font = '12px Arial';
+            visCtx.textAlign = 'center';
+
+            const startX = Math.floor((-centerX) / GRID_SIZE);
+            const endX = Math.floor((width - centerX) / GRID_SIZE);
+            
+            for (let i = startX; i <= endX; i++) {
+                const x = centerX + i * GRID_SIZE;
+                if (x >= 10 && x <= width - 10) {
+                    visCtx.fillText(i.toString(), x, centerY + 15);
+                }
+            }
+            
+            const startY = Math.floor((-centerY) / GRID_SIZE);
+            const endY = Math.floor((height - centerY) / GRID_SIZE);
+            
+            for (let i = startY; i <= endY; i++) {
+                const y = centerY + i * GRID_SIZE;
+                if (y >= 10 && y <= height - 10) {
+                    const value = -i;
+                    visCtx.textAlign = 'right';
+                    visCtx.fillText(value.toString(), centerX - 8, y + 4);
+                    visCtx.textAlign = 'center';
+                }
+            }
+            
+            visCtx.fillText("0", centerX - 10, centerY + 15);
+        }
+
+        function toGridPosition(x, y) {
+            const centerX = visualizationCanvas.width / 2 + offsetX;
+            const centerY = visualizationCanvas.height / 2 + offsetY;
+            
+            const pixelX = centerX + x * GRID_SIZE;
+            const pixelY = centerY - y * GRID_SIZE;
+            
+            const gridX = Math.round(pixelX / GRID_SIZE);
+            const gridY = Math.round(pixelY / GRID_SIZE);
+            
+            return {
+                gridX: gridX,
+                gridY: gridY,
+                pixelX: gridX * GRID_SIZE,
+                pixelY: gridY * GRID_SIZE
+            };
+        }
+
+        function drawPixel(gridX, gridY, color = '#ffffff') {
+            visCtx.fillStyle = color;
+            visCtx.fillRect(
+                gridX * GRID_SIZE, 
+                gridY * GRID_SIZE, 
+                GRID_SIZE, 
+                GRID_SIZE
+            );
+            
+            visCtx.strokeStyle = '#222';
+            visCtx.lineWidth = 1;
+            visCtx.strokeRect(
+                gridX * GRID_SIZE, 
+                gridY * GRID_SIZE, 
+                GRID_SIZE, 
+                GRID_SIZE
+            );
+        }
+
+        function animateStep() {
+            if (currentStep < totalSteps) {
+                const point = animationPoints[currentStep];
+                const pos = toGridPosition(point.x, point.y);
+                drawPixel(pos.gridX, pos.gridY, '#ff4444');
+                
+                currentStep++;
+                animationId = requestAnimationFrame(animateStep);
+            } else {
+                const endTime = performance.now();
+                const executionTime = endTime - startTime;
+                
+                timeValue.textContent = executionTime.toFixed(2);
+                timeInfo.style.display = 'block';
+                
+                isAnimating = false;
+                redrawFinalResult();
+            }
+        }
+
+        function redrawFinalResult() {
+            drawCoordinateSystem();
+            if (currentCoords) {
+                const { algorithm, x1, y1, x2, y2 } = currentCoords;
+                executeAlgorithm(algorithm, x1, y1, x2, y2, false);
+            }
+        }
+
+        function stepAlgorithm(x1, y1, x2, y2, animate = false) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const steps = Math.max(Math.abs(dx), Math.abs(dy));
+            
+            if (steps === 0) {
+                const pos = toGridPosition(x1, y1);
+                drawPixel(pos.gridX, pos.gridY);
+                return;
+            }
+            
+            const xIncrement = dx / steps;
+            const yIncrement = dy / steps;
+            
+            let x = x1;
+            let y = y1;
+            
+            if (animate) {
+                animationPoints = [];
+                for (let i = 0; i <= steps; i++) {
+                    animationPoints.push({
+                        x: Math.round(x),
+                        y: Math.round(y)
+                    });
+                    x += xIncrement;
+                    y += yIncrement;
+                }
+                totalSteps = animationPoints.length;
+                currentStep = 0;
+                return;
+            }
+            
+            for (let i = 0; i <= steps; i++) {
+                const pos = toGridPosition(Math.round(x), Math.round(y));
+                drawPixel(pos.gridX, pos.gridY);
+                x += xIncrement;
+                y += yIncrement;
+            }
+        }
+
+        function ddaAlgorithm(x1, y1, x2, y2, animate = false) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const steps = Math.max(Math.abs(dx), Math.abs(dy));
+            
+            if (steps === 0) {
+                const pos = toGridPosition(x1, y1);
+                drawPixel(pos.gridX, pos.gridY);
+                return;
+            }
+            
+            const xIncrement = dx / steps;
+            const yIncrement = dy / steps;
+            
+            let x = x1;
+            let y = y1;
+            
+            if (animate) {
+                animationPoints = [];
+                for (let i = 0; i <= steps; i++) {
+                    animationPoints.push({
+                        x: Math.round(x),
+                        y: Math.round(y)
+                    });
+                    x += xIncrement;
+                    y += yIncrement;
+                }
+                totalSteps = animationPoints.length;
+                currentStep = 0;
+                return;
+            }
+            
+            for (let i = 0; i <= steps; i++) {
+                const pos = toGridPosition(Math.round(x), Math.round(y));
+                drawPixel(pos.gridX, pos.gridY);
+                x += xIncrement;
+                y += yIncrement;
+            }
+        }
+
+        function bresenhamLine(x1, y1, x2, y2, animate = false) {
+            let x = Math.round(x1);
+            let y = Math.round(y1);
+            const x2_rounded = Math.round(x2);
+            const y2_rounded = Math.round(y2);
+            
+            const dx = Math.abs(x2_rounded - x);
+            const dy = Math.abs(y2_rounded - y);
+            const sx = (x < x2_rounded) ? 1 : -1;
+            const sy = (y < y2_rounded) ? 1 : -1;
+            let err = dx - dy;
+            
+            if (animate) {
+                animationPoints = [];
+                animationPoints.push({x, y});
+                
+                while (true) {
+                    if (x === x2_rounded && y === y2_rounded) break;
+                    
+                    const e2 = 2 * err;
+                    if (e2 > -dy) {
+                        err -= dy;
+                        x += sx;
+                    }
+                    if (e2 < dx) {
+                        err += dx;
+                        y += sy;
+                    }
+                    animationPoints.push({x, y});
+                }
+                
+                totalSteps = animationPoints.length;
+                currentStep = 0;
+                return;
+            }
+            
+            while (true) {
+                const pos = toGridPosition(x, y);
+                drawPixel(pos.gridX, pos.gridY);
+                
+                if (x === x2_rounded && y === y2_rounded) break;
+                
+                const e2 = 2 * err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y += sy;
+                }
+            }
+        }
+
+        function bresenhamCircle(xc, yc, r, animate = false) {
+            let x = 0;
+            let y = Math.round(r);
+            let d = 3 - 2 * Math.round(r);
+            
+            const drawCirclePoints = (xc, yc, x, y, points = null) => {
+                const pointsToDraw = [
+                    {x: xc + x, y: yc + y},
+                    {x: xc - x, y: yc + y},
+                    {x: xc + x, y: yc - y},
+                    {x: xc - x, y: yc - y},
+                    {x: xc + y, y: yc + x},
+                    {x: xc - y, y: yc + x},
+                    {x: xc + y, y: yc - x},
+                    {x: xc - y, y: yc - x}
+                ];
+                
+                if (points) {
+                    points.push(...pointsToDraw);
+                } else {
+                    pointsToDraw.forEach(point => {
+                        const pos = toGridPosition(point.x, point.y);
+                        drawPixel(pos.gridX, pos.gridY);
+                    });
+                }
+            };
+            
+            if (animate) {
+                animationPoints = [];
+                drawCirclePoints(xc, yc, x, y, animationPoints);
+                
+                while (y >= x) {
+                    x++;
+                    if (d > 0) {
+                        y--;
+                        d = d + 4 * (x - y) + 10;
+                    } else {
+                        d = d + 4 * x + 6;
+                    }
+                    drawCirclePoints(xc, yc, x, y, animationPoints);
+                }
+                
+                totalSteps = animationPoints.length;
+                currentStep = 0;
+                return;
+            }
+            
+            drawCirclePoints(xc, yc, x, y);
+            
+            while (y >= x) {
+                x++;
+                if (d > 0) {
+                    y--;
+                    d = d + 4 * (x - y) + 10;
+                } else {
+                    d = d + 4 * x + 6;
+                }
+                drawCirclePoints(xc, yc, x, y);
+            }
+        }
+
+        function executeAlgorithm(algorithm, x1, y1, x2, y2, animate = false) {
+            if (animate) {
+                isAnimating = true;
+                startTime = performance.now();
+                timeInfo.style.display = 'none';
+                
+                if (algorithm === 'step') {
+                    stepAlgorithm(x1, y1, x2, y2, animate);
+                } else if (algorithm === 'dda') {
+                    ddaAlgorithm(x1, y1, x2, y2, animate);
+                } else if (algorithm === 'bresenham') {
+                    bresenhamLine(x1, y1, x2, y2, animate);
+                } else if (algorithm === 'bresenham-circle') {
+                    bresenhamCircle(x1, y1, x2, animate);
+                }
+                
+                animateStep();
+            } else {
+                if (algorithm === 'step') {
+                    stepAlgorithm(x1, y1, x2, y2, animate);
+                } else if (algorithm === 'dda') {
+                    ddaAlgorithm(x1, y1, x2, y2, animate);
+                } else if (algorithm === 'bresenham') {
+                    bresenhamLine(x1, y1, x2, y2, animate);
+                } else if (algorithm === 'bresenham-circle') {
+                    bresenhamCircle(x1, y1, x2, animate);
+                }
+            }
+        }
+
+        drawButton.addEventListener('click', () => {
+            stopAnimation();
+            const algorithm = algorithmSelect.value;
+            const x1 = parseInt(x1Input.value);
+            const y1 = parseInt(y1Input.value);
+            const x2 = parseInt(x2Input.value);
+            const y2 = parseInt(y2Input.value);
+            
+            currentCoords = { algorithm, x1, y1, x2, y2 };
+            drawCoordinateSystem();
+            executeAlgorithm(algorithm, x1, y1, x2, y2, true);
+        });
+
+        resetViewButton.addEventListener('click', () => {
+            stopAnimation();
+            offsetX = 0;
+            offsetY = 0;
+            redrawAll();
+        });
+
+        function stopAnimation() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            isAnimating = false;
+            currentStep = 0;
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
